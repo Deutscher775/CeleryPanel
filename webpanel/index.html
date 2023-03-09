@@ -6,13 +6,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CeleryPanel | Beta</title>
 </head>
+<style>
+    body{
+        background-color: #010020;
+        color: #fff;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        width: 98vw;
+        height: 97vh;
+    }
+    button{
+        background-color: #00b31e;
+        border: none;
+        width: 170px;
+        font-size: 25px;
+        border-radius: 20px;
+        color: #fff;
+        cursor: pointer;
+    }
+    .logout{
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+    .logout button{
+        background-color: #00b31e;
+        border: none;
+        width: 130px;
+        font-size: 20px;
+        border-radius: 10px;
+        color: #fff;
+        cursor: pointer;
+    }
+</style>
 <body>
     <p>Welcome to CeleryPanel {{user}}</p>
     <a href="/administrator"><button>Administrator panel</button></a>
     <a href="/dev"><button>Development panel</button></a>
-    <a href=""><button></button></a>
-    <a href=""><button></button></a>
-    <a href=""><button></button></a>
-    <a href="/user/logout"><button>Log out</button></a>
+    <a href="/server"><button>Server management</button></a>
+    <a href="/bot"><button>Discord-bot management</button></a>
+    <div class="logout">
+        <a href="/user/logout"><button class="logout-button">Log out</button></a>
+    </div>
 </body>
 </html>

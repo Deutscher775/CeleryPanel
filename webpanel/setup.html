@@ -21,14 +21,14 @@
         color: #fff;
         cursor: pointer;
     }
-    .login{
+    .setup{
         height: 55vh;
         padding: 10px;
         display: flex;
         justify-content: center;
         align-items: center;
     }
-    .login-bg-box{
+    .setup-bg-box{
         background-color: #292929;
         width: 400px;
         height: 300px;
@@ -37,18 +37,31 @@
         display: flex;
         border-radius: 30px;
     }
-    .login-content{
+    .setup-script-content{
         text-align: center;
         color: #fff;
+    }
+    input{
+        margin: 3px;
     }
 </style>
 <body>
     <img src="/assets/logo" alt="" style="width: 200px;">
-    <div class="login">
-        <div class="login-bg-box">
-            <div class="login-content">
-                <a href="{{oauth_url}}"><button>Login with Discord</button></a>
-                <p>{{notification}}</p>
+    <div class="setup">
+        <div class="setup-bg-box">
+            <div class="setup-script-content">
+                <form class="setup-script-form" method="post" action="/setup/script/set">
+                    <div class="setup-script-file-selector">
+                        <input type="checkbox" name="script-file" value="Script file" checked>
+                        <input type="file" name="setup-script-file" id="file">
+                    </div>
+                    <div class="setup-script-command">
+                        <input type="checkbox" name="start-command" value="Start command">
+                        <input type="text" name="command" placeholder="python3 /home/user/main.py">
+                    </div>
+                    <input type="submit" value="Ok">
+                    <p class="msg">{{msg}}</p>
+                    </form>
             </div>
         </div>
     </div>

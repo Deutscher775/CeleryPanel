@@ -4,10 +4,58 @@
     <meta charset="UTF-8">
     <title>CeleryPanel | Admin</title>
 </head>
+<style>
+    body{
+        background-color: #010020;
+        color: #fff;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+    button{
+        background-color: #00b31e;
+        border: none;
+        width: 170px;
+        font-size: 25px;
+        border-radius: 20px;
+        color: #fff;
+        cursor: pointer;
+        margin: 5px;
+        height: min-content;
+    }
+    .toolbar{
+        width: 90vw;
+        height: max-content;
+        background-color: #292929;
+        justify-content: center;
+        align-items: center;
+        margin: 0 auto;
+        padding: 10px;
+        border-radius: 15px;
+    }
+    .iframe{
+        width: 95vw;
+        height: 75vh;
+        margin-top: 20px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    iframe{
+        position: absolute;
+        width: 90%;
+        height: 70%;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+</style>
 <body>
-    <a href="/dev/session/clear"><button>Clear session</button></a>
-    <a href="/dev/webserver/shutdown"><button>Shutdown webserver</button></a>
-    <a href="administrator/log/login"><button>Login logs</button></a>
-    <a href="administrator/log/notification"><button>Notification log</button></a>
+    <div class="toolbar">
+        <a href="/dev/session/clear"><button>Clear session</button></a>
+        <a href="/dev/webserver/shutdown"><button>Shutdown webserver</button></a>
+        <a href="/iframe/administrator/log/login"><button>Login logs</button></a>
+        <a href="/iframe/administrator/log/notification"><button>Notification log</button></a>
+        <a href="/iframe/server"><button>Server management</button></a>
+        <a href="/administrator/log/login/clear"><button>Clear login logs</button></a>
+    </div>
+    <div class="iframe">
+        <iframe src="{{iframe_src}}" frameborder="0"></iframe>
+    </div>
 </body>
 </html>
