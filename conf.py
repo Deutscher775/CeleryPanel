@@ -22,8 +22,8 @@ SESSION_SECRET_KEY = "S0me_K3y"
 DOMAIN_NAME = ""
 DOMAIN_PORT = 80
 
-if DOMAIN_NAME is str:
-    if DOMAIN_PORT is int:
+if DOMAIN_NAME:
+    if DOMAIN_PORT:
         AFTER_OAUTH_REDIRECT_URL = f"http://{DOMAIN_NAME}:{DOMAIN_PORT}/oauth/callback"  # if you change this, make sure to change it in the discord developer portal too
         HOST_IP = DOMAIN_NAME
     else:
