@@ -50,16 +50,12 @@
     <div class="setup">
         <div class="setup-bg-box">
             <div class="setup-script-content">
+                <p>Enter the file path to the bot start file. (only python(.py) accepted at the moment!)</p>
                 <form class="setup-script-form" method="post" action="/setup/script/set">
-                    <div class="setup-script-file-selector">
-                        <input type="checkbox" name="script-file" value="Script file" checked>
-                        <input type="file" name="setup-script-file" id="file">
-                    </div>
                     <div class="setup-script-command">
-                        <input type="checkbox" name="start-command" value="Start command">
-                        <input type="text" name="command" placeholder="python3 /home/user/main.py">
+                        <input type="text" name="command" placeholder="/home/user/main.py">
                     </div>
-                    <input type="submit" value="Ok">
+                    <input type="submit" value="Set">
                     <p class="msg">{{msg}}</p>
                     </form>
             </div>
