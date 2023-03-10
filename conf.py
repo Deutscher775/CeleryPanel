@@ -49,7 +49,7 @@ OAUTH_URL = f"https://discord.com/api/oauth2/authorize?client_id={OAUTH_CLIENT_I
 
 # Discord bot config
 
-DISCORD_BOT_TOKEN = "OTkxNjM3NDgzMDA1Njg5ODY2.G3wHMZ.a8k2CV8L6mxE5Mj-WttViuR46ITNtWCDC1sfBM"
+DISCORD_BOT_TOKEN = ""
 
 # Discord server config
 
