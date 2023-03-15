@@ -1,0 +1,17 @@
+{
+  "debugging": true,
+  "port": 80,
+  "session-key": "key",
+  "domain-name": null,
+  "domain-port": null,
+  "oauth-secret": null,
+  "oauth-token": null,
+  "oauth-id": null,
+  "discord-bot-token": null,
+  "discord-server-id": null,
+  "discord-access-role-id": null,
+  "discord-administrator-id": null,
+  "discord-full-access-user-ids": [
+    null
+  ]
+}

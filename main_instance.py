@@ -6,6 +6,8 @@ import time
 import traceback
 
 import flask
+import requests
+
 import conf
 import zenora
 import datetime
@@ -21,7 +23,6 @@ try:
 except:
     print("Failed to connect to Discord API")
 dash.config["SECRET_KEY"] = conf.SESSION_SECRET_KEY
-
 
 def check_if_access(member_id):
     communicator_file = open("communicator.json", "r+")
@@ -61,7 +62,6 @@ def get_bot_stats(info):
     communicator_updated = json.load(communicator_file_updated)
     if communicator_updated["com"][1]["getinfo"]["response"] is not None:
         response = communicator_updated["com"][1]["getinfo"]["response"]
-        print(response)
         communicator_updated["com"][1]["getinfo"]["response"] = None
         communicator_updated["com"][1]["getinfo"]["request"] = False
         communicator_updated["com"][1]["getinfo"]["args"] = None
@@ -97,26 +97,34 @@ def bot_action(action):
         return True
 
 
+def check_login():
+    try:
+        if flask.session["logout"] is True:
+            flask.session["logout"] = False
+            return False
+        elif "oauth_access_token" in flask.session:
+            return True
+        else:
+            return False
+    except zenora.exceptions.BadTokenError:
+        flask.session["invalid access token"] = True
+        return False
+    except KeyError:
+        return False
+
+
+
 @dash.route("/", methods=["POST", "GET"])
 def route_index():
     try:
         open(f"{pathlib.Path(__file__).parent.resolve()}/data/setup-start.json", "r")
     except FileNotFoundError:
         return flask.redirect("/setup")
-    try:
-        if flask.session["logout"] is True:
-            flask.session["logout"] = False
-            return flask.redirect("/login")
-        elif "oauth_access_token" in flask.session:
-            oauth_bearer_client = zenora.APIClient(flask.session["oauth_access_token"], bearer=True)
-            user = oauth_bearer_client.users.get_current_user().username
-            return flask.render_template("index.html", user=user)
-        else:
-            return flask.redirect("/login")
-    except zenora.exceptions.BadTokenError:
-        flask.session["invalid access token"] = True
-        return flask.redirect("/login")
-    except KeyError:
+    if check_login():
+        oauth_bearer_client = zenora.APIClient(flask.session["oauth_access_token"], bearer=True)
+        user = oauth_bearer_client.users.get_current_user().username
+        return flask.render_template("index.html", user=user)
+    else:
         return flask.redirect("/login")
 
 
@@ -135,13 +143,23 @@ def shutdown():
 
 @dash.route("/administrator")
 def admin_panel():
-    if "oauth_access_token" in flask.session:
-        oauth_bearer_client = zenora.APIClient(flask.session["oauth_access_token"], bearer=True)
-        user_id = oauth_bearer_client.users.get_current_user().id
-        if user_id in conf.DISCORD_PANEL_FULL_ACCESS_USER_IDS:
-            return flask.render_template("admin.html")
-        else:
-            return "You do not have access to this panel"
+    if check_login():
+        if "oauth_access_token" in flask.session:
+            oauth_bearer_client = zenora.APIClient(flask.session["oauth_access_token"], bearer=True)
+            user_id = oauth_bearer_client.users.get_current_user().id
+            if user_id in conf.DISCORD_PANEL_FULL_ACCESS_USER_IDS:
+                try:
+                    iframe_src = flask.session["admin_if_src"]
+                    return flask.render_template("admin.html", iframe_src=f"http://{conf.HOST_IP}:{conf.PORT}{iframe_src}")
+                except KeyError:
+                    flask.session["admin_if_src"] = "/iframe/server"
+                    iframe_src =flask.session["admin_if_src"]
+                    return flask.render_template("admin.html",
+                                                 iframe_src=f"http://{conf.HOST_IP}:{conf.PORT}{iframe_src}")
+            else:
+                return "You do not have access to this panel"
+    else:
+        return flask.redirect("/login")
 
 
 @dash.route("/administrator/log/login")
@@ -158,19 +176,25 @@ def show_login_log():
 
 @dash.route("/dev")
 def development_panel():
-    return flask.render_template("dev.html")
+    if check_login():
+        return flask.render_template("dev.html")
+    else:
+        return flask.redirect("/login")
 
 
 @dash.route("/dev/session/clear")
 def clear_session():
-    flask.session.clear()
-    return flask.redirect("/")
+    if check_login():
+        flask.session.clear()
+        return flask.redirect("/")
+    else:
+        return flask.redirect("/login")
 
 
 @dash.route("/login", methods=["POST", "GET"])
 async def login_request():
     try:
-        if "oauth_access_token" is None:
+        if not "oauth_access_token":
             return flask.render_template("login.html", oauth_url=conf.OAUTH_URL,
                                          notification="Please login.")
 
@@ -210,20 +234,17 @@ async def login_callback():
         flask.session["login_site_notification"] = "You are not allowed to access this panel."
         return flask.redirect("/login")
 
-
-@dash.route("/server", methods=["POST", "GET"])
-async def server_stats():
-    return flask.render_template("server_stats_front.html")
-
-
 @dash.route("/server/stats/call", methods=["POST", "GET"])
 async def server_stats_iframe():
-    cores = f"Core count: {psutil.cpu_count(logical=False)}"
-    cpu_usage = f"CPU usage: {psutil.cpu_percent()}%"
-    ram_usage = f"RAM usage: {psutil.virtual_memory().percent}%"
-    operating_system = f"Operating system: {platform.system()}"
-    return flask.render_template("server_stats_iframe.html", cpu_cores=cores,
-                                 cpu_use=cpu_usage, ram_use=ram_usage, os=operating_system)
+    if check_login():
+        cores = f"Core count: {psutil.cpu_count(logical=False)}"
+        cpu_usage = f"CPU usage: {psutil.cpu_percent()}%"
+        ram_usage = f"RAM usage: {psutil.virtual_memory().percent}%"
+        operating_system = f"Operating system: {platform.system()}"
+        return flask.render_template("server_stats_iframe.html", cpu_cores=cores,
+                                     cpu_use=cpu_usage, ram_use=ram_usage, os=operating_system)
+    else:
+        return flask.redirect("/login")
 
 
 @dash.route("/administrator/log/login/clear", methods=["POST", "GET"])
@@ -241,30 +262,37 @@ async def clear_login_logs():
 
 @dash.route("/bot", methods=["POST", "GET"])
 async def bot_home():
-    try:
-        bot_total_server = get_bot_stats("total server")
-        bot_user_name = get_bot_stats("bot user name")
-        def check_run(pid):
+    if check_login():
+        global is_running
+        try:
+            bot_total_server = get_bot_stats("total server")
+            bot_user_name = get_bot_stats("bot user name")
+            def check_run(pid):
+                try:
+                    os.kill(pid, 0)
+                except OSError:
+                    return False
+                else:
+                    return True
             try:
-                os.kill(pid, 0)
-            except OSError:
-                return False
-            else:
-                return True
-
-        f = open(f"{pathlib.Path(__file__).parent.resolve()}/data/discord-bot-process.json", "r")
-        f_json = json.load(f)
-        pid = f_json["process-id"]
-        if check_run(pid) is True:
-            is_running = "Running"
-        else:
-            is_running = "Not running"
-        return flask.render_template("bot.html", bot_total_servers=bot_total_server,
-                                     bot_user_name=bot_user_name, is_running=is_running,
-                                     action_response=flask.session["bot_action_response"])
-    except KeyError:
-        flask.session["bot_action_response"] = ""
-        return flask.redirect("/bot")
+                f = open(f"{pathlib.Path(__file__).parent.resolve()}/data/discord-bot-process.json", "r")
+                f_json = json.load(f)
+                pid = f_json["process-id"]
+                if check_run(pid) is True:
+                    is_running = "Running"
+                else:
+                    is_running = "Not running"
+            except FileNotFoundError:
+                is_running = "Not running"
+            finally:
+                return flask.render_template("bot.html", bot_total_servers=bot_total_server,
+                                             bot_user_name=bot_user_name, is_running=is_running,
+                                             action_response=flask.session["bot_action_response"])
+        except KeyError:
+            flask.session["bot_action_response"] = ""
+            return flask.redirect("/bot")
+    else:
+        return flask.redirect("/login")
 
 
 @dash.route("/assets/logo", methods=["GET"])
@@ -274,89 +302,108 @@ async def get_logo():
 
 @dash.route("/bot/shutdown", methods=["POST", "GET"])
 async def bot_shutdown():
-    f = open(f"{pathlib.Path(__file__).parent.resolve()}/data/discord-bot-process.json", "r")
-    f_json = json.load(f)
-    pid = f_json["process-id"]
-    os.kill(pid, signal.SIGTERM)
-    bot_action("shutdown")
-    time.sleep(1)
-    return flask.redirect("/bot")
+    if check_login():
+        f = open(f"{pathlib.Path(__file__).parent.resolve()}/data/discord-bot-process.json", "r")
+        f_json = json.load(f)
+        pid = f_json["process-id"]
+        os.kill(pid, signal.SIGKILL)
+        bot_action("shutdown")
+        time.sleep(1)
+        return flask.redirect("/bot")
+    else:
+        return flask.redirect("/login")
 
 
 @dash.route("/log/server", methods=["POST", "GET"])
 async def server_logs():
-    return flask.render_template("/log/server_log.html", s_logs=sys.stdout)
+    if check_login():
+        return flask.render_template("/log/server_log.html", s_logs=sys.stdout)
+    else:
+        return flask.redirect("/login")
 
 
 @dash.route("/bot/start", methods=["POST", "GET"])
 async def bot_start():
-    flask.session["bot_action_response"] = ""
-    communicator_file = open("communicator.json", "r+")
-    communicator = json.load(communicator_file)
-    communicator["com"][2]["action"]["action-request"] = False
-    communicator["com"][2]["action"]["action"] = None
-    communicator["com"][2]["action"]["response"] = None
-    communicator_file.seek(0)
-    json.dump(communicator, communicator_file)
-    communicator_file.truncate()
-    communicator_file.close()
-    start_command_file = open(f"{pathlib.Path(__file__).parent.resolve()}/data/setup-start.json")
-    start_command_json = json.load(start_command_file)
-    if conf.OS == "windows":
-        subprocess.Popen(f"py {pathlib.Path(__file__).parent.resolve()}/discord_worker.py")
-        if start_command_json["start-command-set"] is True:
-            try:
-                process = subprocess.Popen(start_command_json["start-command-command"])
+    if check_login():
+        flask.session["bot_action_response"] = ""
+        communicator_file = open("communicator.json", "r+")
+        communicator = json.load(communicator_file)
+        communicator["com"][2]["action"]["action-request"] = False
+        communicator["com"][2]["action"]["action"] = None
+        communicator["com"][2]["action"]["response"] = None
+        communicator_file.seek(0)
+        json.dump(communicator, communicator_file)
+        communicator_file.truncate()
+        communicator_file.close()
+        start_command_file = open(f"{pathlib.Path(__file__).parent.resolve()}/data/setup-start.json")
+        start_command_json = json.load(start_command_file)
+        if conf.OS == "windows":
+            subprocess.Popen(f"py {pathlib.Path(__file__).parent.resolve()}/discord_worker.py")
+            if start_command_json["start-command-set"] is True:
                 try:
-                    f = open(f"{pathlib.Path(__file__).parent.resolve()}/data/discord-bot-process.json", "x")
-                    data = {"process-id": process.pid}
-                    json.dump(data, f)
-                except FileExistsError:
-                    f = open(f"{pathlib.Path(__file__).parent.resolve()}/data/discord-bot-process.json", "w")
-                    f.truncate(0)
-                    data = {"process-id": process.pid}
-                    json.dump(data, f)
-            except Exception as e:
-                flask.session["bot_action_response"] = str(e)
-        else:
-            flask.session["bot_action_response"] = "No discord bot start set."
-        time.sleep(3)
-        return flask.redirect("/bot")
-    elif conf.OS == "linux":
-        subprocess.Popen(["python3", f"{pathlib.Path(__file__).parent.resolve()}/discord_worker.py"])
-        if start_command_json["start-command-set"] is True:
-            try:
-                process = subprocess.Popen(["python3", f"{start_command_json['start-command-command']}"])
+                    process = subprocess.Popen(f'py {start_command_json["start-command-command"]}')
+                    try:
+                        f = open(f"{pathlib.Path(__file__).parent.resolve()}/data/discord-bot-process.json", "x")
+                        data = {"process-id": process.pid}
+                        json.dump(data, f)
+                    except FileExistsError:
+                        f = open(f"{pathlib.Path(__file__).parent.resolve()}/data/discord-bot-process.json", "w")
+                        f.truncate(0)
+                        data = {"process-id": process.pid}
+                        json.dump(data, f)
+                except Exception as e:
+                    flask.session["bot_action_response"] = str(e)
+            else:
+                flask.session["bot_action_response"] = "No discord bot start set."
+            time.sleep(3)
+            return flask.redirect("/bot")
+        elif conf.OS == "linux":
+            subprocess.Popen(["python3", f"{pathlib.Path(__file__).parent.resolve()}/discord_worker.py"])
+            if start_command_json["start-command-set"] is True:
                 try:
-                    f = open(f"{pathlib.Path(__file__).parent.resolve()}/data/discord-bot-process.json", "x")
-                    data = {"process-id": process.pid}
-                    json.dump(data, f)
-                except FileExistsError:
-                    f = open(f"{pathlib.Path(__file__).parent.resolve()}/data/discord-bot-process.json", "w")
-                    f.truncate(0)
-                    data = {"process-id": process.pid}
-                    json.dump(data, f)
-            except Exception as e:
-                flask.session["bot_action_response"] = str(e)
-        else:
-            flask.session["bot_action_response"] = "No discord bot start set."
-        time.sleep(3)
-        return flask.redirect("/bot")
+                    process = subprocess.Popen(["python3", f"{start_command_json['start-command-command']}"])
+                    try:
+                        f = open(f"{pathlib.Path(__file__).parent.resolve()}/data/discord-bot-process.json", "x")
+                        data = {"process-id": process.pid}
+                        json.dump(data, f)
+                    except FileExistsError:
+                        f = open(f"{pathlib.Path(__file__).parent.resolve()}/data/discord-bot-process.json", "w")
+                        f.truncate(0)
+                        data = {"process-id": process.pid}
+                        json.dump(data, f)
+                except Exception as e:
+                    flask.session["bot_action_response"] = str(e)
+            else:
+                flask.session["bot_action_response"] = "No discord bot start set."
+            time.sleep(3)
+            return flask.redirect("/bot")
+    else:
+        return flask.redirect("/login")
 
 
 @dash.route("/iframe/administrator/log/login")
 async def render_iframe_login_log():
-    return flask.render_template("admin.html", iframe_src=f"http://{conf.HOST_IP}:{conf.PORT}/administrator/log/login")
-
+    if check_login():
+        flask.session["admin_if_src"] = "/administrator/log/login"
+        return flask.redirect("/administrator")
+    else:
+        return flask.redirect("/login")
 
 @dash.route("/iframe/administrator/log/notification")
 async def render_iframe_notif_log():
-    return flask.render_template("admin.html", iframe_src=f"http://{conf.HOST_IP}:{conf.PORT}/administrator/log/notification")
-
+    if check_login():
+        flask.session["admin_if_src"] = "/log/notification"
+        return flask.redirect("/administrator")
+    else:
+        return flask.redirect("/login")
 
 @dash.route("/iframe/server")
 async def render_iframe_server():
-    return flask.render_template("admin.html", iframe_src=f"http://{conf.HOST_IP}:{conf.PORT}/server/stats/call")
+    if check_login():
+        flask.session["admin_if_src"] = "/server/stats/call"
+        return flask.redirect("/administrator")
+    else:
+        return flask.redirect("/login")
 
 
 @dash.route("/setup", methods=["POST", "GET"])

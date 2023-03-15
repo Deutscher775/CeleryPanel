@@ -12,6 +12,7 @@ dc_client = commands.Bot(command_prefix="cp$", intents=nextcord.Intents.all())
 
 @dc_client.event
 async def on_ready():
+    await dc_client.change_presence(activity=nextcord.Game(name="Starting CeleryPanel..."))
     while True:
         communicator_file = open("communicator.json", "r+")
         communicator = json.load(communicator_file)
