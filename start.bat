@@ -1,3 +1,4 @@
 @echo off
-start "Web dashboard" py C:\Users\GEBlo\Desktop\CeleryPanel\main_instance.py
-start "Discord bot" py C:\Users\GEBlo\Desktop\CeleryPanel\discord_worker.py
+start "Web dashboard" py ./main_instance.py
+start "Discord bot" py ./discord_worker.py
+start "Restarter" py ./restarter.py

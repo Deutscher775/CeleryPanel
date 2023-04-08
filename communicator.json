@@ -1,1 +1,1 @@
-{"com": [{"access": {"check": false, "id": null, "response": null, "is-response": false}}, {"getinfo": {"request": false, "args": null, "response": null}}, {"action": {"action-request": false, "action": null, "response": null}}]}
+{"com": [{"access": {"check": false, "id": null, "response": null, "is-response": false}}, {"getinfo": {"request": false, "args": null, "response": "Schildi - Test"}}, {"action": {"action-request": false, "action": null, "response": null}}]}
