@@ -29,10 +29,10 @@ DOMAIN_PORT = config["domain-port"]
 
 if DOMAIN_NAME and not DOMAIN_NAME is False:
     if DOMAIN_PORT and not DOMAIN_PORT is False:
-        AFTER_OAUTH_REDIRECT_URL = f"http://{DOMAIN_NAME}:{DOMAIN_PORT}/oauth/callback"  # if you change this, make sure to change it in the discord developer portal too
+        AFTER_OAUTH_REDIRECT_URL = f"http://{DOMAIN_NAME}:{int(DOMAIN_PORT)}/oauth/callback"  # if you change this, make sure to change it in the discord developer portal too
         HOST_IP = DOMAIN_NAME
     else:
-        AFTER_OAUTH_REDIRECT_URL = f"http://{DOMAIN_PORT}:{PORT}/oauth/callback"  # if you change this, make sure to change it in the discord developer portal too
+        AFTER_OAUTH_REDIRECT_URL = f"http://{DOMAIN_PORT}:{int(PORT)}/oauth/callback"  # if you change this, make sure to change it in the discord developer portal too
 
 else:
     # the following code gets the ip of the server automatically
@@ -44,12 +44,12 @@ else:
         print(colorama.Fore.CYAN + "----\nYour server doesn't seem to be connected to the internet or blocks "
                                    f"ips.\nRunning {colorama.Fore.LIGHTBLUE_EX}localhost.\n{colorama.Fore.CYAN}----" + colorama.Style.RESET_ALL)
         HOST_IP = "localhost"
-    AFTER_OAUTH_REDIRECT_URL = f"http://{HOST_IP}:{PORT}/oauth/callback"  # if you change this, make sure to change it in the discord developer portal too
+    AFTER_OAUTH_REDIRECT_URL = f"http://{HOST_IP}:{int(PORT)}/oauth/callback"  # if you change this, make sure to change it in the discord developer portal too
 
 OAUTH_CLIENT_SECRET = config["discord-oauth-secret"]
 OAUTH_TOKEN = config["discord-oauth-token"]
 OAUTH_CLIENT_ID = config["discord-oauth-id"]
-OAUTH_URL = f"https://discord.com/api/oauth2/authorize?client_id={OAUTH_CLIENT_ID}&redirect_uri={parse.quote(AFTER_OAUTH_REDIRECT_URL)}&response_type=code&scope=identify%20guilds"
+OAUTH_URL = f"https://discord.com/api/oauth2/authorize?client_id={int(OAUTH_CLIENT_ID)}&redirect_uri={parse.quote(AFTER_OAUTH_REDIRECT_URL)}&response_type=code&scope=identify%20guilds"
 
 # Discord bot config
 
