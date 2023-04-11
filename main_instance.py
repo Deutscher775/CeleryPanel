@@ -1,6 +1,7 @@
 import os
 import platform
 import signal
+import socket
 import sys
 import time
 import traceback
@@ -25,7 +26,6 @@ except:
     print("Failed to connect to Discord API")
 dash.config["SECRET_KEY"] = conf.SESSION_SECRET_KEY
 
-
 try:
     pid = os.getpid()
     global f
@@ -35,11 +35,35 @@ try:
         f = open(f"{pathlib.Path(__file__).parent.resolve()}/data/webpanel-data.json", "w")
     finally:
         f.truncate(0)
-        data = {"process-id": pid, "restart": False}
+        data = {"process-id": pid, "restart": False, "restarter-pid": None, "error-correction-pid": None}
         json.dump(data, f)
         f.close()
 except:
     traceback.print_exc()
+
+__restarter_pid_commit_file = open(f"{pathlib.Path(__file__).parent.resolve()}/data/webpanel-data.json", "r+")
+__restarter_pid_commit_json = json.load(__restarter_pid_commit_file)
+global __restarter_process
+if conf.OS == "windows":
+    __restarter_process = subprocess.Popen(["py", f"{pathlib.Path(__file__).parent.resolve()}/restarter.py"])
+if conf.OS == "linux":
+    __restarter_process = subprocess.Popen(["python3", f"{pathlib.Path(__file__).parent.resolve()}/restarter.py"])
+__restarter_pid_commit_json["restarter-pid"] = __restarter_process.pid
+__restarter_pid_commit_file.seek(0)
+json.dump(__restarter_pid_commit_json, __restarter_pid_commit_file)
+__restarter_pid_commit_file.truncate()
+
+__err_corr_pid_commit_file = open(f"{pathlib.Path(__file__).parent.resolve()}/data/webpanel-data.json", "r+")
+__err_corr_pid_commit_json = json.load(__err_corr_pid_commit_file)
+global __err_corr_process
+if conf.OS == "windows":
+    __err_corr_process = subprocess.Popen(["py", f"{pathlib.Path(__file__).parent.resolve()}/error-correction.py"])
+if conf.OS == "linux":
+    __err_corr_process = subprocess.Popen(["python3", f"{pathlib.Path(__file__).parent.resolve()}/error-correction.py"])
+__err_corr_pid_commit_json["error-correction-pid"] = __err_corr_process.pid
+__err_corr_pid_commit_file.seek(0)
+json.dump(__err_corr_pid_commit_json, __err_corr_pid_commit_file)
+__err_corr_pid_commit_file.truncate()
 
 
 def set_restart():
@@ -55,8 +79,6 @@ def set_restart():
         json.dump(f_json, f)
         f.truncate()
         f.close()
-
-
 
 
 def check_if_access(member_id):
@@ -261,8 +283,10 @@ async def login_callback():
         if conf.NOTIFICATION_ON_ACCESS:
             session = aiohttp.ClientSession()
             webhook = nextcord.Webhook.from_url(url=conf.NOTIFICATION_WEBHOOK_URL, session=session)
-            await webhook.send(f"<@{user.id}> tried to access the panel.\n**Access:** null (error)\n**Is bot:** {user.is_bot}",
-                               avatar_url="https://raw.githubusercontent.com/Deutscher775/CeleryPanel/master/webpanel/assets/CeleryPanel.png", username="CelerPanel | Login")
+            await webhook.send(
+                f"<@{user.id}> tried to access the panel.\n**Access:** null (error)\n**Is bot:** {user.is_bot}",
+                avatar_url="https://raw.githubusercontent.com/Deutscher775/CeleryPanel/master/webpanel/assets/CeleryPanel.png",
+                username="CeleryPanel | Login")
             await session.close()
         return flask.redirect("/login")
     elif check_if_access(user.id):
@@ -273,8 +297,10 @@ async def login_callback():
         if conf.NOTIFICATION_ON_ACCESS:
             session = aiohttp.ClientSession()
             webhook = nextcord.Webhook.from_url(url=conf.NOTIFICATION_WEBHOOK_URL, session=session)
-            await webhook.send(f"<@{user.id}> tried to access the panel.\n**Access:** true (granted)\n**Is bot:** {user.is_bot}",
-                               avatar_url="https://raw.githubusercontent.com/Deutscher775/CeleryPanel/master/webpanel/assets/CeleryPanel.png", username="CelerPanel | Login")
+            await webhook.send(
+                f"<@{user.id}> tried to access the panel.\n**Access:** true (granted)\n**Is bot:** {user.is_bot}",
+                avatar_url="https://raw.githubusercontent.com/Deutscher775/CeleryPanel/master/webpanel/assets/CeleryPanel.png",
+                username="CeleryPanel | Login")
             await session.close()
         return flask.redirect("/")
     else:
@@ -286,8 +312,10 @@ async def login_callback():
         if conf.NOTIFICATION_ON_ACCESS:
             session = aiohttp.ClientSession()
             webhook = nextcord.Webhook.from_url(url=conf.NOTIFICATION_WEBHOOK_URL, session=session)
-            await webhook.send(f"<@{user.id}> tried to access the panel.\n**Access:** false (denied)\n**Is bot:** {user.is_bot}",
-                               avatar_url="https://raw.githubusercontent.com/Deutscher775/CeleryPanel/master/webpanel/assets/CeleryPanel.png", username="CelerPanel | Login")
+            await webhook.send(
+                f"<@{user.id}> tried to access the panel.\n**Access:** false (denied)\n**Is bot:** {user.is_bot}",
+                avatar_url="https://raw.githubusercontent.com/Deutscher775/CeleryPanel/master/webpanel/assets/CeleryPanel.png",
+                username="CeleryPanel | Login")
             await session.close()
         return flask.redirect("/login")
 
@@ -507,6 +535,8 @@ def check_setup():
         return "discord-webhook-url"
     else:
         return False
+
+
 @dash.route("/setup", methods=["GET"])
 async def setup():
     try:
@@ -833,6 +863,7 @@ async def setup_conf_set_dc_webhook_url():
         f.truncate()
         return flask.redirect("/setup")
 
+
 @dash.route("/iframe/console")
 async def render_iframe_console():
     if check_login():
@@ -840,6 +871,7 @@ async def render_iframe_console():
         return flask.redirect("/administrator")
     else:
         return flask.redirect("/login")
+
 
 @dash.route("/server/console")
 def iframe_console():
@@ -850,6 +882,7 @@ def iframe_console():
         c.close()
         console = open(f"{pathlib.Path(__file__).parent.resolve()}/data/console.txt", "r")
     return flask.render_template("console.html", console=console.read())
+
 
 @dash.route("/server/console/send", methods=["POST"])
 def console_send():
@@ -863,8 +896,6 @@ def console_send():
     command_respone = os.popen(command).read()
     console.write(f"{command_respone}\n")
     return flask.redirect("/server/console")
-
-
 
 
 dash.run(host=conf.HOST_IP, port=conf.PORT, debug=conf.DEBUGGING)
