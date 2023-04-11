@@ -37,7 +37,7 @@
         display: flex;
         border-radius: 30px;
     }
-    .setup-script-content{
+    .setup-content{
         text-align: center;
         color: #fff;
     }
@@ -49,15 +49,15 @@
     <img src="/assets/logo" alt="" style="width: 200px;">
     <div class="setup">
         <div class="setup-bg-box">
-            <div class="setup-script-content">
-                <p>Enter the file path to the bot start file. (only python(.py) accepted at the moment!)</p>
-                <form class="setup-script-form" method="post" action="/setup/script/set">
-                    <div class="setup-script-command">
-                        <input type="text" name="command" placeholder="/home/user/main.py">
+            <div class="setup-content">
+                <p>Enter the id of the administrator (gives this user/s access to the administrator panel)</p>
+                <form class="setup-form" method="post" action="{{action}}">
+                    <div class="setup-value">
+                        <input type="text" name="{{name}}" placeholder="{{placeholder}}">
                     </div>
                     <input type="submit" value="Set">
                     <p class="msg">{{msg}}</p>
-                    </form>
+                </form>
             </div>
         </div>
     </div>

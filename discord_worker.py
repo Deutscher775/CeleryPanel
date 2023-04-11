@@ -1,7 +1,6 @@
 import asyncio
 import json
 import traceback
-
 import nextcord
 from nextcord.ext import commands
 import conf
@@ -12,6 +11,7 @@ dc_client = commands.Bot(command_prefix="cp$", intents=nextcord.Intents.all())
 
 @dc_client.event
 async def on_ready():
+    await dc_client.change_presence(activity=nextcord.Game(name="Starting CeleryPanel..."))
     while True:
         communicator_file = open("communicator.json", "r+")
         communicator = json.load(communicator_file)
@@ -77,4 +77,4 @@ async def actions(action):
             return "Couldn't close connection to Discord."
 
 if __name__ == "__main__":
-    dc_client.run(conf.DISCORD_BOT_TOKEN)
+    dc_client.run(conf.OAUTH_TOKEN)
